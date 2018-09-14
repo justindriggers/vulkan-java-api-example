@@ -40,6 +40,9 @@ public class GLFWWindow implements Window {
     private final GLFWKeyCallback keyCallback;
     private final GLFWFramebufferSizeCallback framebufferSizeCallback;
 
+    private int currentWidth;
+    private int currentHeight;
+
     public GLFWWindow() {
         if (!glfwInit()) {
             throw new IllegalStateException("Failed to initialize GLFW");
@@ -51,7 +54,10 @@ public class GLFWWindow implements Window {
 
         windowHandle = glfwCreateWindow(WIDTH, HEIGHT, "GLFW Vulkan Demo", NULL, NULL);
 
-        renderer = new VulkanRenderer(windowHandle, WIDTH, HEIGHT);
+        currentWidth = WIDTH;
+        currentHeight = HEIGHT;
+
+        renderer = new VulkanRenderer(this);
 
         keyCallback = new GLFWKeyCallback() {
             @Override
@@ -67,7 +73,12 @@ public class GLFWWindow implements Window {
         framebufferSizeCallback = new GLFWFramebufferSizeCallback() {
             @Override
             public void invoke(final long window, final int width, final int height) {
-                renderer.resize(width, height);
+                if (windowHandle == window) {
+                    currentWidth = width;
+                    currentHeight = height;
+
+                    renderer.refresh();
+                }
             }
         };
 
@@ -80,6 +91,16 @@ public class GLFWWindow implements Window {
 
             renderer.renderFrame();
         }
+    }
+
+    @Override
+    public int getWidth() {
+        return currentWidth;
+    }
+
+    @Override
+    public int getHeight() {
+        return currentHeight;
     }
 
     @Override
