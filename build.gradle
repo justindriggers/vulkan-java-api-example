@@ -1,8 +1,10 @@
 import org.gradle.internal.os.OperatingSystem
 
 plugins {
-    id 'java'
+    id 'application'
 }
+
+mainClassName = 'com.justindriggers.example.Application'
 
 group = 'com.justindriggers'
 version = '1.0-SNAPSHOT'
@@ -11,6 +13,7 @@ sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
 
 project.ext.lwjglVersion = "3.2.0"
+project.ext.hasVulkanNatives = false
 
 switch ( OperatingSystem.current() ) {
     case OperatingSystem.WINDOWS:
@@ -21,6 +24,7 @@ switch ( OperatingSystem.current() ) {
         break
     case OperatingSystem.MAC_OS:
         project.ext.lwjglNatives = "natives-macos"
+        project.ext.hasVulkanNatives = true
         break
 }
 
@@ -36,5 +40,12 @@ dependencies {
 
     implementation("org.lwjgl:lwjgl:$lwjglVersion:$lwjglNatives")
     implementation("org.lwjgl:lwjgl-glfw:$lwjglVersion:$lwjglNatives")
-    implementation("org.lwjgl:lwjgl-vulkan:$lwjglVersion:$lwjglNatives")
+
+    if (project.ext.hasVulkanNatives) {
+        implementation("org.lwjgl:lwjgl-vulkan:$lwjglVersion:$lwjglNatives")
+    }
+}
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '4.10'
 }
