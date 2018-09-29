@@ -2,30 +2,35 @@ package com.justindriggers.example.renderer.swapchain;
 
 import com.justindriggers.example.renderer.device.PhysicalDeviceMetadata;
 import com.justindriggers.example.window.Window;
+import com.justindriggers.vulkan.command.CommandBuffer;
+import com.justindriggers.vulkan.command.CommandPool;
+import com.justindriggers.vulkan.command.commands.BeginRenderPassCommand;
+import com.justindriggers.vulkan.command.commands.BindPipelineCommand;
+import com.justindriggers.vulkan.command.commands.DrawCommand;
+import com.justindriggers.vulkan.command.commands.EndRenderPassCommand;
 import com.justindriggers.vulkan.devices.logical.LogicalDevice;
 import com.justindriggers.vulkan.devices.physical.PhysicalDevice;
+import com.justindriggers.vulkan.image.Image;
+import com.justindriggers.vulkan.image.ImageView;
+import com.justindriggers.vulkan.models.ColorFormat;
+import com.justindriggers.vulkan.models.ColorSpace;
 import com.justindriggers.vulkan.models.Extent2D;
-import com.justindriggers.vulkan.pipeline.CommandBuffer;
-import com.justindriggers.vulkan.pipeline.CommandPool;
 import com.justindriggers.vulkan.pipeline.GraphicsPipeline;
 import com.justindriggers.vulkan.pipeline.PipelineLayout;
-import com.justindriggers.vulkan.pipeline.RenderPass;
-import com.justindriggers.vulkan.pipeline.commands.BeginRenderPassCommand;
-import com.justindriggers.vulkan.pipeline.commands.BindPipelineCommand;
-import com.justindriggers.vulkan.pipeline.commands.DrawCommand;
-import com.justindriggers.vulkan.pipeline.commands.EndRenderPassCommand;
+import com.justindriggers.vulkan.pipeline.models.assembly.InputAssemblyState;
+import com.justindriggers.vulkan.pipeline.models.assembly.PrimitiveTopology;
+import com.justindriggers.vulkan.pipeline.models.vertex.VertexInputState;
 import com.justindriggers.vulkan.pipeline.shader.ShaderModule;
+import com.justindriggers.vulkan.pipeline.shader.ShaderStage;
+import com.justindriggers.vulkan.pipeline.shader.ShaderStageType;
 import com.justindriggers.vulkan.queue.QueueFamily;
 import com.justindriggers.vulkan.surface.Surface;
 import com.justindriggers.vulkan.surface.models.PresentMode;
+import com.justindriggers.vulkan.surface.models.SurfaceFormat;
 import com.justindriggers.vulkan.surface.models.capabilities.SurfaceCapabilities;
-import com.justindriggers.vulkan.surface.models.format.ColorFormat;
-import com.justindriggers.vulkan.surface.models.format.ColorSpace;
-import com.justindriggers.vulkan.surface.models.format.SurfaceFormat;
 import com.justindriggers.vulkan.swapchain.Framebuffer;
-import com.justindriggers.vulkan.swapchain.ImageView;
+import com.justindriggers.vulkan.swapchain.RenderPass;
 import com.justindriggers.vulkan.swapchain.Swapchain;
-import com.justindriggers.vulkan.swapchain.models.Image;
 
 import java.util.Collections;
 import java.util.List;
@@ -129,9 +134,20 @@ public class SwapchainManagerImpl implements SwapchainManager {
                     .collect(Collectors.toList());
 
             renderPass = new RenderPass(device, chosenSurfaceFormat.getFormat());
-            pipelineLayout = new PipelineLayout(device);
-            graphicsPipeline = new GraphicsPipeline(device, vertexShader, fragmentShader, imageExtent, renderPass,
-                    pipelineLayout);
+            pipelineLayout = new PipelineLayout(device, null);
+
+            final List<ShaderStage> stages = Stream.of(
+                    new ShaderStage(ShaderStageType.VERTEX, vertexShader, "main"),
+                    new ShaderStage(ShaderStageType.FRAGMENT, fragmentShader, "main")
+            ).collect(Collectors.toList());
+
+            // Vertices are hardcoded within the vertex shader, so there are no bindings/locations to declare here
+            final VertexInputState vertexInputState = VertexInputState.builder().build();
+            final InputAssemblyState inputAssemblyState = new InputAssemblyState(PrimitiveTopology.TRIANGLE_LIST,
+                    false);
+
+            graphicsPipeline = new GraphicsPipeline(device, stages, vertexInputState, inputAssemblyState, imageExtent,
+                    renderPass, pipelineLayout);
 
             framebuffers = swapchainImageViews.stream()
                     .map(imageView -> new Framebuffer(device, renderPass, imageView, imageExtent))

@@ -4,6 +4,9 @@ import com.justindriggers.example.renderer.device.PhysicalDeviceMetadata;
 import com.justindriggers.example.renderer.swapchain.SwapchainManager;
 import com.justindriggers.example.renderer.swapchain.SwapchainManagerImpl;
 import com.justindriggers.example.window.Window;
+import com.justindriggers.vulkan.command.CommandBuffer;
+import com.justindriggers.vulkan.command.CommandPool;
+import com.justindriggers.vulkan.command.models.CommandPoolCreateFlag;
 import com.justindriggers.vulkan.devices.logical.LogicalDevice;
 import com.justindriggers.vulkan.devices.physical.PhysicalDevice;
 import com.justindriggers.vulkan.instance.DebugLogger;
@@ -11,8 +14,6 @@ import com.justindriggers.vulkan.instance.VulkanInstance;
 import com.justindriggers.vulkan.instance.models.MessageSeverity;
 import com.justindriggers.vulkan.instance.models.MessageType;
 import com.justindriggers.vulkan.instance.models.VulkanException;
-import com.justindriggers.vulkan.pipeline.CommandBuffer;
-import com.justindriggers.vulkan.pipeline.CommandPool;
 import com.justindriggers.vulkan.pipeline.models.PipelineStage;
 import com.justindriggers.vulkan.pipeline.shader.ShaderModule;
 import com.justindriggers.vulkan.pipeline.shader.ShaderModuleLoader;
@@ -43,6 +44,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.lwjgl.vulkan.EXTDebugUtils.VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+import static org.lwjgl.vulkan.KHRMaintenance1.VK_KHR_MAINTENANCE1_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 
 public class VulkanRenderer implements Renderer {
@@ -64,7 +66,10 @@ public class VulkanRenderer implements Renderer {
 
     private static final Set<String> VALIDATION_LAYERS = Collections.singleton("VK_LAYER_LUNARG_standard_validation");
     private static final Set<String> INSTANCE_EXTENSIONS = Collections.singleton(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    private static final Set<String> DEVICE_EXTENSIONS = Collections.singleton(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    private static final Set<String> DEVICE_EXTENSIONS = Stream.of(
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            VK_KHR_MAINTENANCE1_EXTENSION_NAME // Allows flipping the y-axis
+    ).collect(Collectors.toSet());
 
     private static final int MAX_IN_FLIGHT_FRAMES = 2;
 
@@ -122,7 +127,8 @@ public class VulkanRenderer implements Renderer {
         vertexShader = shaderModuleLoader.loadFromFile(device, "triangle.vert.spv");
         fragmentShader = shaderModuleLoader.loadFromFile(device, "triangle.frag.spv");
 
-        commandPool = new CommandPool(device, graphicsQueueFamily);
+        commandPool = new CommandPool(device, graphicsQueueFamily,
+                Collections.singleton(CommandPoolCreateFlag.RESET_COMMAND_BUFFER));
 
         swapchainManager = new SwapchainManagerImpl(commandPool);
         recreateSwapchain();
