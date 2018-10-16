@@ -44,7 +44,6 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.lwjgl.vulkan.EXTDebugUtils.VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
-import static org.lwjgl.vulkan.KHRMaintenance1.VK_KHR_MAINTENANCE1_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 
 public class VulkanRenderer implements Renderer {
@@ -67,8 +66,7 @@ public class VulkanRenderer implements Renderer {
     private static final Set<String> VALIDATION_LAYERS = Collections.singleton("VK_LAYER_LUNARG_standard_validation");
     private static final Set<String> INSTANCE_EXTENSIONS = Collections.singleton(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     private static final Set<String> DEVICE_EXTENSIONS = Stream.of(
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-            VK_KHR_MAINTENANCE1_EXTENSION_NAME // Allows flipping the y-axis
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME
     ).collect(Collectors.toSet());
 
     private static final int MAX_IN_FLIGHT_FRAMES = 2;

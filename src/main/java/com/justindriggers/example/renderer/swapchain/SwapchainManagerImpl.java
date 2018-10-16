@@ -12,14 +12,37 @@ import com.justindriggers.vulkan.devices.logical.LogicalDevice;
 import com.justindriggers.vulkan.devices.physical.PhysicalDevice;
 import com.justindriggers.vulkan.image.Image;
 import com.justindriggers.vulkan.image.ImageView;
-import com.justindriggers.vulkan.models.ColorFormat;
+import com.justindriggers.vulkan.image.models.ImageAspect;
+import com.justindriggers.vulkan.image.models.ImageLayout;
+import com.justindriggers.vulkan.image.models.ImageViewType;
+import com.justindriggers.vulkan.models.Access;
 import com.justindriggers.vulkan.models.ColorSpace;
 import com.justindriggers.vulkan.models.Extent2D;
+import com.justindriggers.vulkan.models.Format;
+import com.justindriggers.vulkan.models.Offset2D;
+import com.justindriggers.vulkan.models.Rect2D;
+import com.justindriggers.vulkan.models.SampleCount;
+import com.justindriggers.vulkan.models.clear.ClearColorFloat;
+import com.justindriggers.vulkan.models.clear.ClearValue;
 import com.justindriggers.vulkan.pipeline.GraphicsPipeline;
 import com.justindriggers.vulkan.pipeline.PipelineLayout;
+import com.justindriggers.vulkan.pipeline.models.PipelineBindPoint;
+import com.justindriggers.vulkan.pipeline.models.PipelineStage;
 import com.justindriggers.vulkan.pipeline.models.assembly.InputAssemblyState;
 import com.justindriggers.vulkan.pipeline.models.assembly.PrimitiveTopology;
+import com.justindriggers.vulkan.pipeline.models.colorblend.BlendFactor;
+import com.justindriggers.vulkan.pipeline.models.colorblend.BlendOperation;
+import com.justindriggers.vulkan.pipeline.models.colorblend.ColorBlendAttachmentState;
+import com.justindriggers.vulkan.pipeline.models.colorblend.ColorBlendState;
+import com.justindriggers.vulkan.pipeline.models.colorblend.ColorComponent;
+import com.justindriggers.vulkan.pipeline.models.multisample.MultisampleState;
+import com.justindriggers.vulkan.pipeline.models.rasterization.CullMode;
+import com.justindriggers.vulkan.pipeline.models.rasterization.FrontFace;
+import com.justindriggers.vulkan.pipeline.models.rasterization.PolygonMode;
+import com.justindriggers.vulkan.pipeline.models.rasterization.RasterizationState;
 import com.justindriggers.vulkan.pipeline.models.vertex.VertexInputState;
+import com.justindriggers.vulkan.pipeline.models.viewport.Viewport;
+import com.justindriggers.vulkan.pipeline.models.viewport.ViewportState;
 import com.justindriggers.vulkan.pipeline.shader.ShaderModule;
 import com.justindriggers.vulkan.pipeline.shader.ShaderStage;
 import com.justindriggers.vulkan.pipeline.shader.ShaderStageType;
@@ -31,6 +54,12 @@ import com.justindriggers.vulkan.surface.models.capabilities.SurfaceCapabilities
 import com.justindriggers.vulkan.swapchain.Framebuffer;
 import com.justindriggers.vulkan.swapchain.RenderPass;
 import com.justindriggers.vulkan.swapchain.Swapchain;
+import com.justindriggers.vulkan.swapchain.models.AttachmentLoadOperation;
+import com.justindriggers.vulkan.swapchain.models.AttachmentStoreOperation;
+import com.justindriggers.vulkan.swapchain.models.ColorAttachment;
+import com.justindriggers.vulkan.swapchain.models.Subpass;
+import com.justindriggers.vulkan.swapchain.models.SubpassContents;
+import com.justindriggers.vulkan.swapchain.models.SubpassDependency;
 
 import java.util.Collections;
 import java.util.List;
@@ -130,10 +159,28 @@ public class SwapchainManagerImpl implements SwapchainManager {
                     .orElseGet(Collections::emptyList);
 
             swapchainImageViews = swapchainImages.stream()
-                    .map(image -> new ImageView(device, image, chosenSurfaceFormat.getFormat()))
+                    .map(image -> new ImageView(device, image, ImageViewType.TWO_DIMENSIONAL,
+                            chosenSurfaceFormat.getFormat(), Collections.singleton(ImageAspect.COLOR), 1, 1))
                     .collect(Collectors.toList());
 
-            renderPass = new RenderPass(device, chosenSurfaceFormat.getFormat());
+            final List<ColorAttachment> colorAttachments = Collections.singletonList(
+                    new ColorAttachment(chosenSurfaceFormat.getFormat(), Collections.singleton(SampleCount.ONE),
+                            AttachmentLoadOperation.CLEAR, AttachmentStoreOperation.STORE,
+                            AttachmentLoadOperation.DONT_CARE, AttachmentStoreOperation.DONT_CARE,
+                            ImageLayout.UNDEFINED, ImageLayout.PRESENT_SRC)
+            );
+
+            final List<Subpass> subpasses = Collections.singletonList(
+                    new Subpass(PipelineBindPoint.GRAPHICS, colorAttachments, null)
+            );
+
+            final List<SubpassDependency> subpassDependencies = Collections.singletonList(
+                    new SubpassDependency(-1, 0,
+                            Collections.singleton(PipelineStage.COLOR_ATTACHMENT_OUTPUT), Collections.singleton(PipelineStage.COLOR_ATTACHMENT_OUTPUT),
+                            Collections.emptySet(), Stream.of(Access.COLOR_ATTACHMENT_READ, Access.COLOR_ATTACHMENT_WRITE).collect(Collectors.toSet()))
+            );
+
+            renderPass = new RenderPass(device, subpasses, subpassDependencies);
             pipelineLayout = new PipelineLayout(device, null);
 
             final List<ShaderStage> stages = Stream.of(
@@ -146,14 +193,45 @@ public class SwapchainManagerImpl implements SwapchainManager {
             final InputAssemblyState inputAssemblyState = new InputAssemblyState(PrimitiveTopology.TRIANGLE_LIST,
                     false);
 
-            graphicsPipeline = new GraphicsPipeline(device, stages, vertexInputState, inputAssemblyState, imageExtent,
-                    renderPass, pipelineLayout);
+            final List<Viewport> viewports = Collections.singletonList(
+                    new Viewport(0, 0, imageExtent.getWidth(), imageExtent.getHeight(), 0.0f, 1.0f)
+            );
+
+            final List<Rect2D> scissors = Collections.singletonList(
+                    new Rect2D(0, 0, imageExtent.getWidth(), imageExtent.getHeight())
+            );
+
+            final ViewportState viewportState = new ViewportState(viewports, scissors);
+
+            final RasterizationState rasterizationState = new RasterizationState(false, false, PolygonMode.FILL,
+                    CullMode.BACK, FrontFace.CLOCKWISE, false, 0.0f, 0.0f, 0.0f, 1.0f);
+
+            final MultisampleState multisampleState = new MultisampleState(SampleCount.ONE, false, 0.0f, false, false);
+
+            final List<ColorBlendAttachmentState> colorBlendAttachmentStates = Collections.singletonList(
+                    new ColorBlendAttachmentState(true, BlendFactor.SRC_ALPHA, BlendFactor.ONE_MINUS_SRC_ALPHA,
+                            BlendOperation.ADD, BlendFactor.ONE, BlendFactor.ZERO, BlendOperation.ADD,
+                            Stream.of(ColorComponent.R, ColorComponent.G, ColorComponent.B, ColorComponent.A).collect(Collectors.toSet()))
+            );
+
+            final ColorBlendState colorBlendState = new ColorBlendState(false, null, colorBlendAttachmentStates, null);
+
+            graphicsPipeline = new GraphicsPipeline(device, null, stages, vertexInputState, inputAssemblyState,
+                    viewportState, rasterizationState, multisampleState, null, colorBlendState, renderPass,
+                    pipelineLayout, 0);
 
             framebuffers = swapchainImageViews.stream()
-                    .map(imageView -> new Framebuffer(device, renderPass, imageView, imageExtent))
+                    .map(Collections::singletonList)
+                    .map(attachments -> new Framebuffer(device, renderPass, attachments, imageExtent))
                     .collect(Collectors.toList());
 
             commandBuffers = commandPool.createCommandBuffers(framebuffers.size());
+
+            final Rect2D renderArea = new Rect2D(new Offset2D(0, 0), imageExtent);
+
+            final List<ClearValue> clearValues = Collections.singletonList(
+                    new ClearColorFloat(0.0f, 0.0f, 0.0f, 1.0f)
+            );
 
             IntStream.range(0, commandBuffers.size())
                     .forEach(i -> {
@@ -163,7 +241,8 @@ public class SwapchainManagerImpl implements SwapchainManager {
                         commandBuffer.begin();
 
                         try {
-                            commandBuffer.submit(new BeginRenderPassCommand(renderPass, framebuffer, imageExtent));
+                            commandBuffer.submit(new BeginRenderPassCommand(SubpassContents.INLINE, renderPass,
+                                    framebuffer, renderArea, clearValues));
                             commandBuffer.submit(new BindPipelineCommand(graphicsPipeline));
                             commandBuffer.submit(new DrawCommand(3, 1, 0, 0));
                             commandBuffer.submit(new EndRenderPassCommand());
@@ -269,11 +348,11 @@ public class SwapchainManagerImpl implements SwapchainManager {
             }
 
             if (surfaceFormats.size() == 1 && surfaceFormats.stream().findFirst()
-                    .filter(format -> format.getFormat() == ColorFormat.UNDEFINED).isPresent()) {
-                result = new SurfaceFormat(ColorFormat.B8G8R8A8_UNORM, ColorSpace.SRGB_NONLINEAR);
+                    .filter(format -> format.getFormat() == Format.UNDEFINED).isPresent()) {
+                result = new SurfaceFormat(Format.B8G8R8A8_UNORM, ColorSpace.SRGB_NONLINEAR);
             } else {
                 result = surfaceFormats.stream()
-                        .filter(surfaceFormat -> ColorFormat.B8G8R8A8_UNORM.equals(surfaceFormat.getFormat())
+                        .filter(surfaceFormat -> Format.B8G8R8A8_UNORM.equals(surfaceFormat.getFormat())
                                 && ColorSpace.SRGB_NONLINEAR.equals(surfaceFormat.getColorSpace()))
                         .findFirst()
                         .orElseGet(() -> surfaceFormats.stream()

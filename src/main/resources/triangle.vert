@@ -7,18 +7,18 @@ out gl_PerVertex {
 
 layout(location = 0) out vec3 fragColor;
 
-// Vertex positions, counter-clockwise (y-axis pointing up)
+// Vertex positions, clockwise, with y-axis pointing down
 vec2 positions[3] = vec2[](
-    vec2(0.0, 0.5),
-    vec2(-0.5, -0.5),
-    vec2(0.5, -0.5)
+    vec2(0.0, -0.5),
+    vec2(0.5, 0.5),
+    vec2(-0.5, 0.5)
 );
 
 // Color for each vertex in the above array
 vec3 colors[3] = vec3[](
     vec3(1.0, 0.0, 0.0),
-    vec3(0.0, 0.0, 1.0),
-    vec3(0.0, 1.0, 0.0)
+    vec3(0.0, 1.0, 0.0),
+    vec3(0.0, 0.0, 1.0)
 );
 
 void main() {
