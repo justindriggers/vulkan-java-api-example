@@ -8,6 +8,7 @@ import com.justindriggers.vulkan.command.commands.BeginRenderPassCommand;
 import com.justindriggers.vulkan.command.commands.BindPipelineCommand;
 import com.justindriggers.vulkan.command.commands.DrawCommand;
 import com.justindriggers.vulkan.command.commands.EndRenderPassCommand;
+import com.justindriggers.vulkan.command.models.CommandBufferLevel;
 import com.justindriggers.vulkan.devices.logical.LogicalDevice;
 import com.justindriggers.vulkan.devices.physical.PhysicalDevice;
 import com.justindriggers.vulkan.image.Image;
@@ -225,7 +226,7 @@ public class SwapchainManagerImpl implements SwapchainManager {
                     .map(attachments -> new Framebuffer(device, renderPass, attachments, imageExtent))
                     .collect(Collectors.toList());
 
-            commandBuffers = commandPool.createCommandBuffers(framebuffers.size());
+            commandBuffers = commandPool.createCommandBuffers(CommandBufferLevel.PRIMARY, framebuffers.size());
 
             final Rect2D renderArea = new Rect2D(new Offset2D(0, 0), imageExtent);
 
