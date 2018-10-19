@@ -14,6 +14,7 @@ import com.justindriggers.vulkan.instance.VulkanInstance;
 import com.justindriggers.vulkan.instance.models.MessageSeverity;
 import com.justindriggers.vulkan.instance.models.MessageType;
 import com.justindriggers.vulkan.instance.models.VulkanException;
+import com.justindriggers.vulkan.models.pointers.Disposable;
 import com.justindriggers.vulkan.pipeline.models.PipelineStage;
 import com.justindriggers.vulkan.pipeline.shader.ShaderModule;
 import com.justindriggers.vulkan.pipeline.shader.ShaderModuleLoader;
@@ -25,6 +26,7 @@ import com.justindriggers.vulkan.synchronize.Fence;
 import com.justindriggers.vulkan.synchronize.Semaphore;
 import com.justindriggers.vulkan.synchronize.models.FenceCreationFlag;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -202,48 +204,19 @@ public class VulkanRenderer implements Renderer {
     }
 
     @Override
-    public void close() {
+    public void close() throws IOException {
         Optional.ofNullable(device).ifPresent(LogicalDevice::waitIdle);
 
-        try {
-            swapchainManager.close();
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to close swapchain manager");
-        }
+        swapchainManager.close();
 
-        imageAcquiredSemaphores.forEach(semaphore -> {
-            try {
-                semaphore.close();
-            } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Failed to close semaphore");
-            }
-        });
-
-        renderCompleteSemaphores.forEach(semaphore -> {
-            try {
-                semaphore.close();
-            } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Failed to close semaphore");
-            }
-        });
-
-        inFlightFences.forEach(fence -> {
-            try {
-                fence.close();
-            } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Failed to close fence");
-            }
-        });
+        imageAcquiredSemaphores.forEach(Disposable::close);
+        renderCompleteSemaphores.forEach(Disposable::close);
+        inFlightFences.forEach(Disposable::close);
 
         Stream.of(commandPool, fragmentShader, vertexShader, device, surface, instance)
                 .filter(Objects::nonNull)
-                .forEachOrdered(closeable -> {
-                    try {
-                        closeable.close();
-                    } catch (Exception e) {
-                        LOGGER.log(Level.SEVERE, "Failed to close " + closeable.getClass().getName());
-                    }
-                });
+                .map(Disposable.class::cast)
+                .forEachOrdered(Disposable::close);
     }
 
     private void recreateSwapchain() {

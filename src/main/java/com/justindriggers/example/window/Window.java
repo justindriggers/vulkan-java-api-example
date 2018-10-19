@@ -1,6 +1,8 @@
 package com.justindriggers.example.window;
 
-public interface Window extends AutoCloseable {
+import java.io.Closeable;
+
+public interface Window extends Closeable {
 
     int getWidth();
 

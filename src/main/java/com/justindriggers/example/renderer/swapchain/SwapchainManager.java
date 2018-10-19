@@ -8,9 +8,10 @@ import com.justindriggers.vulkan.pipeline.shader.ShaderModule;
 import com.justindriggers.vulkan.surface.Surface;
 import com.justindriggers.vulkan.swapchain.Swapchain;
 
+import java.io.Closeable;
 import java.util.List;
 
-public interface SwapchainManager extends AutoCloseable {
+public interface SwapchainManager extends Closeable {
 
     void refresh(final Window window,
                  final Surface surface,

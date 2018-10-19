@@ -6,8 +6,7 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallback;
 import org.lwjgl.glfw.GLFWKeyCallback;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.io.IOException;
 
 import static org.lwjgl.glfw.GLFW.GLFW_CLIENT_API;
 import static org.lwjgl.glfw.GLFW.GLFW_FALSE;
@@ -29,8 +28,6 @@ import static org.lwjgl.glfw.GLFW.glfwWindowShouldClose;
 import static org.lwjgl.system.MemoryUtil.NULL;
 
 public class GLFWWindow implements Window {
-
-    private static final Logger LOGGER = Logger.getLogger(GLFWWindow.class.getName());
 
     private static final int WIDTH = 800;
     private static final int HEIGHT = 600;
@@ -109,12 +106,8 @@ public class GLFWWindow implements Window {
     }
 
     @Override
-    public void close() {
-        try {
-            renderer.close();
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "Failed to close renderer", e);
-        }
+    public void close() throws IOException {
+        renderer.close();
 
         framebufferSizeCallback.free();
         keyCallback.free();

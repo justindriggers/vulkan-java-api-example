@@ -25,6 +25,7 @@ import com.justindriggers.vulkan.models.Rect2D;
 import com.justindriggers.vulkan.models.SampleCount;
 import com.justindriggers.vulkan.models.clear.ClearColorFloat;
 import com.justindriggers.vulkan.models.clear.ClearValue;
+import com.justindriggers.vulkan.models.pointers.Disposable;
 import com.justindriggers.vulkan.pipeline.GraphicsPipeline;
 import com.justindriggers.vulkan.pipeline.PipelineLayout;
 import com.justindriggers.vulkan.pipeline.models.PipelineBindPoint;
@@ -62,20 +63,17 @@ import com.justindriggers.vulkan.swapchain.models.Subpass;
 import com.justindriggers.vulkan.swapchain.models.SubpassContents;
 import com.justindriggers.vulkan.swapchain.models.SubpassDependency;
 
+import java.io.Closeable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class SwapchainManagerImpl implements SwapchainManager {
-
-    private static final Logger LOGGER = Logger.getLogger(SwapchainManagerImpl.class.getName());
 
     private final CommandPool commandPool;
 
@@ -119,7 +117,7 @@ public class SwapchainManagerImpl implements SwapchainManager {
                 .ifPresent(SwapchainContainer::close);
     }
 
-    private class SwapchainContainer implements AutoCloseable {
+    private class SwapchainContainer implements Closeable {
 
         private final Swapchain swapchain;
         private final List<ImageView> swapchainImageViews;
@@ -260,33 +258,15 @@ public class SwapchainManagerImpl implements SwapchainManager {
 
             Optional.ofNullable(framebuffers)
                     .orElseGet(Collections::emptyList)
-                    .forEach(framebuffer -> {
-                        try {
-                            framebuffer.close();
-                        } catch (Exception e) {
-                            LOGGER.log(Level.SEVERE, "Failed to close framebuffer");
-                        }
-                    });
+                    .forEach(Disposable::close);
 
             Optional.ofNullable(swapchainImageViews)
                     .orElseGet(Collections::emptyList)
-                    .forEach(imageView -> {
-                        try {
-                            imageView.close();
-                        } catch (Exception e) {
-                            LOGGER.log(Level.SEVERE, "Failed to close image view");
-                        }
-                    });
+                    .forEach(Disposable::close);
 
             Stream.of(graphicsPipeline, pipelineLayout, renderPass, swapchain)
                     .filter(Objects::nonNull)
-                    .forEachOrdered(closeable -> {
-                        try {
-                            closeable.close();
-                        } catch (Exception e) {
-                            LOGGER.log(Level.SEVERE, "Failed to close " + closeable.getClass().getName());
-                        }
-                    });
+                    .forEachOrdered(Disposable::close);
         }
 
         Swapchain getSwapchain() {

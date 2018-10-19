@@ -1,6 +1,8 @@
 package com.justindriggers.example.renderer;
 
-public interface Renderer extends AutoCloseable {
+import java.io.Closeable;
+
+public interface Renderer extends Closeable {
 
     void renderFrame();
 
