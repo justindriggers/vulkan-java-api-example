@@ -1,7 +1,6 @@
 package com.justindriggers.example.renderer.swapchain;
 
 import com.justindriggers.example.renderer.device.PhysicalDeviceMetadata;
-import com.justindriggers.example.window.Window;
 import com.justindriggers.vulkan.command.CommandBuffer;
 import com.justindriggers.vulkan.devices.logical.LogicalDevice;
 import com.justindriggers.vulkan.pipeline.shader.ShaderModule;
@@ -13,8 +12,7 @@ import java.util.List;
 
 public interface SwapchainManager extends Closeable {
 
-    void refresh(final Window window,
-                 final Surface surface,
+    void refresh(final Surface surface,
                  final PhysicalDeviceMetadata physicalDeviceMetadata,
                  final LogicalDevice device,
                  final ShaderModule vertexShader,

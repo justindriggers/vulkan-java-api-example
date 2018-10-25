@@ -1,7 +1,6 @@
 package com.justindriggers.example.renderer.swapchain;
 
 import com.justindriggers.example.renderer.device.PhysicalDeviceMetadata;
-import com.justindriggers.example.window.Window;
 import com.justindriggers.vulkan.command.CommandBuffer;
 import com.justindriggers.vulkan.command.CommandPool;
 import com.justindriggers.vulkan.command.commands.BeginRenderPassCommand;
@@ -84,8 +83,7 @@ public class SwapchainManagerImpl implements SwapchainManager {
     }
 
     @Override
-    public void refresh(final Window window,
-                        final Surface surface,
+    public void refresh(final Surface surface,
                         final PhysicalDeviceMetadata physicalDeviceMetadata,
                         final LogicalDevice device,
                         final ShaderModule vertexShader,
@@ -93,7 +91,7 @@ public class SwapchainManagerImpl implements SwapchainManager {
         Optional.ofNullable(currentSwapchainContainer)
                 .ifPresent(SwapchainContainer::close);
 
-        currentSwapchainContainer = new SwapchainContainer(window, surface, physicalDeviceMetadata, device,
+        currentSwapchainContainer = new SwapchainContainer(surface, physicalDeviceMetadata, device,
                 vertexShader, fragmentShader);
     }
 
@@ -129,8 +127,7 @@ public class SwapchainManagerImpl implements SwapchainManager {
         private final List<Framebuffer> framebuffers;
         private final List<CommandBuffer> commandBuffers;
 
-        SwapchainContainer(final Window window,
-                           final Surface surface,
+        SwapchainContainer(final Surface surface,
                            final PhysicalDeviceMetadata physicalDeviceMetadata,
                            final LogicalDevice device,
                            final ShaderModule vertexShader,
@@ -142,7 +139,7 @@ public class SwapchainManagerImpl implements SwapchainManager {
             final SurfaceCapabilities surfaceCapabilities = surface.getCapabilities(physicalDevice);
 
             final int imageCount = getImageCount(surfaceCapabilities);
-            final Extent2D imageExtent = getImageExtent(surfaceCapabilities, window);
+            final Extent2D imageExtent = surfaceCapabilities.getCurrentExtent();
 
             final List<SurfaceFormat> surfaceFormats = surface.getFormats(physicalDevice);
             final SurfaceFormat chosenSurfaceFormat = getBestSurfaceFormat(surfaceFormats);
@@ -287,35 +284,6 @@ public class SwapchainManagerImpl implements SwapchainManager {
                 result = desiredImageCount;
             } else {
                 result = maxImageCount;
-            }
-
-            return result;
-        }
-
-        private Extent2D getImageExtent(final SurfaceCapabilities surfaceCapabilities,
-                                               final Window window) {
-            final Extent2D result;
-
-            if (surfaceCapabilities.getCurrentExtent().getWidth() != Integer.MAX_VALUE) {
-                result = surfaceCapabilities.getCurrentExtent();
-            } else {
-                final int width = Math.max(
-                        surfaceCapabilities.getMinImageExtent().getWidth(),
-                        Math.min(
-                                surfaceCapabilities.getMaxImageExtent().getWidth(),
-                                window.getWidth()
-                        )
-                );
-
-                final int height = Math.max(
-                        surfaceCapabilities.getMinImageExtent().getHeight(),
-                        Math.min(
-                                surfaceCapabilities.getMaxImageExtent().getHeight(),
-                                window.getHeight()
-                        )
-                );
-
-                result = new Extent2D(width, height);
             }
 
             return result;

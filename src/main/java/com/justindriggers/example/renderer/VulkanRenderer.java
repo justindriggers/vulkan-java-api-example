@@ -3,16 +3,12 @@ package com.justindriggers.example.renderer;
 import com.justindriggers.example.renderer.device.PhysicalDeviceMetadata;
 import com.justindriggers.example.renderer.swapchain.SwapchainManager;
 import com.justindriggers.example.renderer.swapchain.SwapchainManagerImpl;
-import com.justindriggers.example.window.Window;
 import com.justindriggers.vulkan.command.CommandBuffer;
 import com.justindriggers.vulkan.command.CommandPool;
 import com.justindriggers.vulkan.command.models.CommandPoolCreateFlag;
 import com.justindriggers.vulkan.devices.logical.LogicalDevice;
 import com.justindriggers.vulkan.devices.physical.PhysicalDevice;
-import com.justindriggers.vulkan.instance.DebugLogger;
 import com.justindriggers.vulkan.instance.VulkanInstance;
-import com.justindriggers.vulkan.instance.models.MessageSeverity;
-import com.justindriggers.vulkan.instance.models.MessageType;
 import com.justindriggers.vulkan.instance.models.VulkanException;
 import com.justindriggers.vulkan.models.pointers.Disposable;
 import com.justindriggers.vulkan.pipeline.models.PipelineStage;
@@ -30,7 +26,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,28 +40,12 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static org.lwjgl.vulkan.EXTDebugUtils.VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
 import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 
 public class VulkanRenderer implements Renderer {
 
     private static final Logger LOGGER = Logger.getLogger(VulkanRenderer.class.getName());
 
-    private static final Set<MessageSeverity> MESSAGE_SEVERITIES = Stream.of(
-            MessageSeverity.VERBOSE,
-            MessageSeverity.INFO,
-            MessageSeverity.WARNING,
-            MessageSeverity.ERROR
-    ).collect(Collectors.toCollection(() -> EnumSet.noneOf(MessageSeverity.class)));
-
-    private static final Set<MessageType> MESSAGE_TYPES = Stream.of(
-            MessageType.GENERAL,
-            MessageType.PERFORMANCE,
-            MessageType.VALIDATION
-    ).collect(Collectors.toCollection(() -> EnumSet.noneOf(MessageType.class)));
-
-    private static final Set<String> VALIDATION_LAYERS = Collections.singleton("VK_LAYER_LUNARG_standard_validation");
-    private static final Set<String> INSTANCE_EXTENSIONS = Collections.singleton(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     private static final Set<String> DEVICE_EXTENSIONS = Stream.of(
             VK_KHR_SWAPCHAIN_EXTENSION_NAME
     ).collect(Collectors.toSet());
@@ -76,10 +55,8 @@ public class VulkanRenderer implements Renderer {
     private AtomicInteger currentFrameCounter = new AtomicInteger(0);
     private AtomicBoolean isDirty = new AtomicBoolean(false);
 
-    private final Window window;
-
-    private final VulkanInstance instance;
     private final Surface surface;
+
     private final LogicalDevice device;
 
     private final PhysicalDeviceMetadata chosenPhysicalDeviceMetadata;
@@ -98,16 +75,8 @@ public class VulkanRenderer implements Renderer {
     private final List<Semaphore> renderCompleteSemaphores;
     private final List<Fence> inFlightFences;
 
-    public VulkanRenderer(final Window window) {
-        this.window = window;
-
-        instance = new VulkanInstance(INSTANCE_EXTENSIONS, VALIDATION_LAYERS);
-
-        if (!MESSAGE_SEVERITIES.isEmpty() && !MESSAGE_TYPES.isEmpty()) {
-            instance.enableDebugging(MESSAGE_SEVERITIES, MESSAGE_TYPES, new DebugLogger());
-        }
-
-        surface = new Surface(instance, window.getHandle());
+    public VulkanRenderer(final VulkanInstance instance, final Surface surface) {
+        this.surface = surface;
 
         final List<PhysicalDevice> physicalDevices = Optional.ofNullable(instance.getPhysicalDevices())
                 .orElseGet(Collections::emptyList);
@@ -213,7 +182,7 @@ public class VulkanRenderer implements Renderer {
         renderCompleteSemaphores.forEach(Disposable::close);
         inFlightFences.forEach(Disposable::close);
 
-        Stream.of(commandPool, fragmentShader, vertexShader, device, surface, instance)
+        Stream.of(commandPool, fragmentShader, vertexShader, device)
                 .filter(Objects::nonNull)
                 .map(Disposable.class::cast)
                 .forEachOrdered(Disposable::close);
@@ -222,7 +191,7 @@ public class VulkanRenderer implements Renderer {
     private void recreateSwapchain() {
         device.waitIdle();
 
-        swapchainManager.refresh(window, surface, chosenPhysicalDeviceMetadata, device, vertexShader, fragmentShader);
+        swapchainManager.refresh(surface, chosenPhysicalDeviceMetadata, device, vertexShader, fragmentShader);
     }
 
     private static PhysicalDeviceMetadata getMostSuitablePhysicalDeviceMetadata(final List<PhysicalDevice> physicalDevices,
