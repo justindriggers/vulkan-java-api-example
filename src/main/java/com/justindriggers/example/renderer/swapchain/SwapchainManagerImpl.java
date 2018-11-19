@@ -212,9 +212,8 @@ public class SwapchainManagerImpl implements SwapchainManager {
 
             final ColorBlendState colorBlendState = new ColorBlendState(false, null, colorBlendAttachmentStates, null);
 
-            graphicsPipeline = new GraphicsPipeline(device, null, stages, vertexInputState, inputAssemblyState,
-                    viewportState, rasterizationState, multisampleState, null, colorBlendState, renderPass,
-                    pipelineLayout, 0);
+            graphicsPipeline = new GraphicsPipeline(device, stages, vertexInputState, inputAssemblyState, viewportState,
+                    rasterizationState, multisampleState, null, colorBlendState, renderPass, pipelineLayout, 0);
 
             framebuffers = swapchainImageViews.stream()
                     .map(Collections::singletonList)

@@ -96,8 +96,7 @@ public class VulkanRenderer implements Renderer {
         vertexShader = shaderModuleLoader.loadFromFile(device, "triangle.vert.spv");
         fragmentShader = shaderModuleLoader.loadFromFile(device, "triangle.frag.spv");
 
-        commandPool = new CommandPool(device, graphicsQueueFamily,
-                Collections.singleton(CommandPoolCreateFlag.RESET_COMMAND_BUFFER));
+        commandPool = new CommandPool(device, graphicsQueueFamily, CommandPoolCreateFlag.RESET_COMMAND_BUFFER);
 
         swapchainManager = new SwapchainManagerImpl(commandPool);
         recreateSwapchain();
@@ -110,7 +109,7 @@ public class VulkanRenderer implements Renderer {
                 .forEach(i -> {
                     imageAcquiredSemaphores.add(new Semaphore(device));
                     renderCompleteSemaphores.add(new Semaphore(device));
-                    inFlightFences.add(new Fence(device, Collections.singleton(FenceCreationFlag.SIGNALED)));
+                    inFlightFences.add(new Fence(device, FenceCreationFlag.SIGNALED));
                 });
     }
 
